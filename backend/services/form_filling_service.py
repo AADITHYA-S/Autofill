@@ -1,4 +1,6 @@
 from io import BytesIO
+from pathlib import Path
+from uuid import uuid4
 
 from PIL import Image
 
@@ -23,6 +25,9 @@ class FormFillingService:
         self.profile_repository = ProfileRepository()
 
     async def fill(self, uploaded_file, user_id):
+
+        if Path(uploaded_file.filename or "").suffix.lower() == ".pdf":
+            return await self._fill_pdf(uploaded_file, user_id)
 
         # 1. Existing Textract pipeline
         textract_result = await self.textract_service.extract(
@@ -149,7 +154,144 @@ class FormFillingService:
             checkbox_options=checkbox_options
         )
 
-        return output_path
+        return {
+            "output_path": output_path,
+            "review_items": self._collect_review_items(matched_fields, identity_profile),
+        }
+
+    async def _fill_pdf(self, uploaded_file, user_id):
+        pages = await self.textract_service.extract_pdf(uploaded_file)
+        profile_doc = self.profile_repository.get_by_user_id(user_id)
+        identity_profile = self._build_identity_profile(profile_doc)
+        filled_pages = []
+        review_items = []
+
+        for page_number, (image, textract_result) in enumerate(pages, start=1):
+            field_extractor = FieldExtractor(textract_result)
+            detected_fields = field_extractor.extract()
+            selection_elements = field_extractor.get_selection_elements()
+            checkbox_options = field_extractor.get_checkbox_options(selection_elements)
+            checkbox_labels = {
+                option["label"].strip().lower()
+                for option in checkbox_options
+                if option.get("label")
+            }
+            detected_fields = [
+                field for field in detected_fields
+                if field.label.strip().lower() not in checkbox_labels
+            ]
+            matched_fields = self.semantic_matcher.match(detected_fields)
+            review_items.extend(
+                self._collect_review_items(matched_fields, identity_profile, page_number=page_number)
+            )
+            cell_boxes = field_extractor.extract_cell_box()
+
+            self.autofill_service.set_profile(identity_profile)
+            filled_page = self.autofill_service.fill_form(
+                image=image,
+                matched_fields=matched_fields,
+                cell_boxes=cell_boxes,
+                extractor=field_extractor,
+            )
+            if checkbox_options:
+                self.autofill_service.fill_checkboxes(
+                    filled_page,
+                    checkbox_options,
+                )
+            filled_pages.append(filled_page.convert("RGB"))
+
+        if not filled_pages:
+            raise ValueError("The PDF does not contain any pages")
+
+        output_dir = Path("outputs")
+        output_dir.mkdir(exist_ok=True)
+        output_path = output_dir / f"filled_form_{uuid4().hex}.pdf"
+        filled_pages[0].save(
+            output_path,
+            format="PDF",
+            save_all=True,
+            append_images=filled_pages[1:],
+        )
+        return {
+            "output_path": str(output_path),
+            "review_items": review_items,
+        }
+
+    @staticmethod
+    def _profile_value_for_canonical(identity_profile, canonical_field):
+        """Resolve a canonical field to the corresponding profile value."""
+        if not canonical_field or identity_profile is None:
+            return None
+
+        canonical_to_profile = {
+            "phone_number": "phone",
+            "father_name": "guardian_name",
+            "house_flat": "house_number",
+        }
+        profile_field = canonical_to_profile.get(canonical_field, canonical_field)
+        value = getattr(identity_profile, profile_field, None)
+
+        if value is None:
+            return None
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return str(value)
+
+    @classmethod
+    def _collect_review_items(cls, matched_fields, identity_profile, page_number=None):
+        """
+        Include only fields that appear to correspond to data actually present
+        in the user's profile. Missing profile data is expected and stays quiet.
+        Rejected candidates are for review only; they are never autofilled.
+        """
+        items = []
+
+        for matched in matched_fields:
+            label = (matched.form_field.label or "Unlabelled field").strip()
+
+            # For a rejected semantic match, use only the review-only candidate
+            # supplied by the matcher. Never promote it to an autofill match.
+            candidate = matched.canonical_field or matched.suggested_canonical_field
+            profile_value = cls._profile_value_for_canonical(
+                identity_profile, candidate
+            )
+
+            # If this form field's likely information is not in the profile,
+            # it is normal for it to remain blank: do not show a warning.
+            if not profile_value:
+                continue
+
+            reason = None
+            kind = None
+
+            if matched.type_compatible is False:
+                kind = "type_mismatch"
+                reason = "The profile contains this information, but the form field type is incompatible."
+            elif not matched.canonical_field:
+                normalized = (
+                    (matched.form_field.normalized_label or "")
+                    .strip()
+                    .lower()
+                )
+                if normalized in {"guardian name", "name of guardian"}:
+                    kind = "ambiguous"
+                    reason = "This label is ambiguous, so the system left it blank rather than guessing."
+                else:
+                    kind = "unmatched"
+                    reason = "Profile information may correspond to this field, but the match was not confident enough."
+
+            if reason:
+                item = {
+                    "label": label,
+                    "reason": reason,
+                    "kind": kind,
+                }
+                if page_number is not None:
+                    item["page"] = page_number
+                items.append(item)
+
+        return items
 
     def _build_identity_profile(self, profile):
 

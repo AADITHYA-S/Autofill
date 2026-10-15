@@ -8,9 +8,41 @@ function getAccessToken() {
     return localStorage.getItem("access_token");
 }
 
-function isAuthenticated() {
-    return Boolean(getAccessToken());
+function isTokenExpired(token) {
+    try {
+        const payload = token.split(".")[1];
+        const decodedPayload = JSON.parse(
+            atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+        );
+
+        return !decodedPayload.exp || decodedPayload.exp * 1000 <= Date.now();
+    } catch {
+        return true;
+    }
 }
+
+function isAuthenticated() {
+    const token = getAccessToken();
+
+    if (!token || isTokenExpired(token)) {
+        localStorage.removeItem("access_token");
+        return false;
+    }
+
+    return true;
+}
+
+document.querySelectorAll(".brand[data-authenticated-href]").forEach((brand) => {
+    const landingPage = brand.getAttribute("href");
+    const dashboard = brand.dataset.authenticatedHref;
+
+    const updateDestination = () => {
+        brand.setAttribute("href", isAuthenticated() ? dashboard : landingPage);
+    };
+
+    updateDestination();
+    brand.addEventListener("click", updateDestination);
+});
 
 function logout() {
     localStorage.removeItem("access_token");

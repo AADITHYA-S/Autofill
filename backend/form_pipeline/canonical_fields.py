@@ -3,7 +3,6 @@ CANONOICAL_FIELDS={
     "name":[
         "name",
         "full_name",
-        "name (capital letter)",
         "name capital letter",
         "applicant name",
         "applicant's name",
@@ -37,25 +36,23 @@ CANONOICAL_FIELDS={
 
     #Contact
 
-    "phone_number":[
-        "phone number",
-        "mobile number",
-        "telephone number",
-        "phone",
-        "mobile",
-        "phone number",
-        "mobile no",
-        "phone no",
-        "contact number",
-        "applicant's phone number"
-    
+    "phone_number": [
+    "phone number",
+    "mobile number",
+    "telephone number",
+    "phone",
+    "mobile",
+    "mobile no",
+    "phone no",
+    "contact number",
+    "contact no",
+    "applicant's phone number",
     ],
 
     "email":[
         "email",
         "mail",
         "gmail",
-        "email",
         "email id",
         "email address",
         "e-mail",
@@ -67,14 +64,12 @@ CANONOICAL_FIELDS={
         "mother's name",
         "mother name",
         "name of mother",
-        "guardian name"
     ],
 
     "father_name":[
         "father's name",
         "father name",
-        "name of father"
-        "guardian name",
+        "name of father",
         "father's/spouse name"
     ],
 
@@ -98,7 +93,6 @@ CANONOICAL_FIELDS={
         "flat number",
         "flat no",
         "house flat",
-        "house/flat",
         "house name",
         "flat name"
     ],
@@ -157,7 +151,9 @@ CANONOICAL_FIELDS={
     "state": [
         "state",
         "state name",
-        "state of issue"
+        "state of issue",
+        "State of Residence",
+        "residential state",
     ],
 
     "pincode": [

@@ -16,7 +16,7 @@
   <body>
     <header class="topbar">
       <div class="topbar-inner">
-        <a class="brand" href="../../index.html" aria-label="MedForm dashboard">
+        <a class="brand" href="../dashboard/dashboard.html" aria-label="MedForm dashboard">
           <span class="brand-mark">A</span>
           <span>AutoForm</span>
         </a>
@@ -53,11 +53,7 @@
           </div>
 
           <div class="preview">
-            <img
-              id="resultPreviewImage"
-              class="generated-form"
-              alt="Completed form preview"
-            />
+            <div id="resultViewer" class="result-viewer" aria-label="Completed form preview"></div>
           </div>
         </div>
 
@@ -70,8 +66,8 @@
 
           <div class="stat">
             <span>OUTPUT FORMAT</span>
-            <strong>PNG</strong>
-            <small>Completed form image</small>
+            <strong>PDF or PNG</strong>
+            <small>Completed form document</small>
           </div>
 
           <div class="review">
@@ -88,6 +84,17 @@
             </button>
           </div>
 
+          <section class="manual-review" id="manualReviewSection" aria-labelledby="manualReviewHeading" hidden>
+            <div class="manual-review-heading">
+              <strong id="manualReviewHeading">Review required</strong>
+              <span id="reviewCount" class="review-count">0</span>
+            </div>
+            <p class="review-empty">Some fields may need your attention.</p>
+            <button id="openReviewModalButton" class="review-open-button" type="button">
+              View fields to review
+            </button>
+          </section>
+
           <button class="download" id="downloadButton" type="button">
             Download completed form <span>↓</span>
           </button>
@@ -103,6 +110,28 @@
       <span>AutoForm</span>
       <span>Secure identity • Consent-based autofill</span>
     </footer>
+
+
+
+    <div id="reviewModal" class="review-modal" role="dialog" aria-modal="true"
+         aria-labelledby="reviewModalTitle" aria-describedby="reviewModalDescription" hidden>
+      <div class="review-modal-backdrop" data-close-review-modal></div>
+      <section class="review-modal-panel">
+        <div class="review-modal-header">
+          <div>
+            <p class="eyebrow">AUTOFILL CHECK</p>
+            <h2 id="reviewModalTitle">Fields to review</h2>
+            <p id="reviewModalDescription">Only fields that may match information in your profile are listed here.</p>
+          </div>
+          <button id="closeReviewModalButton" class="review-modal-close" type="button" aria-label="Close review dialog">×</button>
+        </div>
+        <div id="reviewGroups" class="review-groups"></div>
+        <div class="review-modal-footer">
+          <span>Review these fields in the document before submitting it.</span>
+          <button id="doneReviewButton" class="download" type="button">Done</button>
+        </div>
+      </section>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

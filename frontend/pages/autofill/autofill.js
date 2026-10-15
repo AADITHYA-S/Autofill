@@ -320,7 +320,7 @@ function openResultDatabase() {
   });
 }
 
-async function saveResult(blob, originalName) {
+async function saveResult(blob, originalName, reviewItems = []) {
   const db = await openResultDatabase();
 
   return new Promise((resolve, reject) => {
@@ -335,6 +335,7 @@ async function saveResult(blob, originalName) {
       {
         blob,
         originalName,
+        reviewItems,
         createdAt: Date.now()
       },
       RESULT_KEY
@@ -390,19 +391,31 @@ async function startProcessing() {
       response.headers.get("content-type") || ""
     ).toLowerCase();
 
-    if (!contentType.includes("image/png")) {
+    if (!contentType.includes("application/json")) {
       throw new Error(
-        "The server returned an unexpected output format. Expected PNG."
+        "The server returned an unexpected response. Please restart the updated backend."
       );
     }
 
-    const blob = await response.blob();
+    const data = await response.json();
 
-    if (!blob || blob.size === 0) {
+    if (!data.file_base64 || !data.media_type) {
+      throw new Error("The server did not return the completed form file.");
+    }
+
+    const binaryString = atob(data.file_base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i += 1) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const blob = new Blob([bytes], { type: data.media_type });
+
+    if (blob.size === 0) {
       throw new Error("The server returned an empty completed form.");
     }
 
-    await saveResult(blob, selectedForm.name);
+    await saveResult(blob, selectedForm.name, data.review_items || []);
 
     clearProcessingTimers();
 

@@ -68,6 +68,10 @@ async function apiRequest(endpoint, options = {}) {
 
     if (!response.ok) {
 
+        if (response.status === 401) {
+            localStorage.removeItem("access_token");
+        }
+
         let message = "Something went wrong.";
 
         if (

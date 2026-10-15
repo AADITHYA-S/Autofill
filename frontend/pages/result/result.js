@@ -93,11 +93,114 @@ async function deleteResult() {
   });
 }
 
+function isPdfRecord(record) {
+  const mimeType = (record?.blob?.type || "").toLowerCase();
+  const fileName = (record?.originalName || "").toLowerCase();
+  return mimeType.includes("application/pdf") || fileName.endsWith(".pdf");
+}
+
 function buildDownloadName(originalName) {
   const safeOriginalName = originalName || "form";
   const baseName = safeOriginalName.replace(/\.[^/.]+$/, "");
+  const extension = isPdfRecord(resultRecord) ? "pdf" : "png";
+  return `Completed_${baseName}.${extension}`;
+}
 
-  return `Completed_${baseName}.png`;
+
+const reviewModal = document.getElementById("reviewModal");
+const reviewGroups = document.getElementById("reviewGroups");
+const manualReviewSection = document.getElementById("manualReviewSection");
+const openReviewModalButton = document.getElementById("openReviewModalButton");
+const closeReviewModalButton = document.getElementById("closeReviewModalButton");
+const doneReviewButton = document.getElementById("doneReviewButton");
+
+function openReviewModal() {
+  if (!reviewModal) return;
+  reviewModal.hidden = false;
+  document.body.classList.add("review-modal-open");
+  closeReviewModalButton?.focus();
+}
+
+function closeReviewModal() {
+  if (!reviewModal) return;
+  reviewModal.hidden = true;
+  document.body.classList.remove("review-modal-open");
+  openReviewModalButton?.focus();
+}
+
+function renderReviewItems(items) {
+  const count = document.getElementById("reviewCount");
+  if (!count || !reviewGroups || !manualReviewSection) return;
+
+  reviewGroups.replaceChildren();
+  count.textContent = String(items.length);
+  manualReviewSection.hidden = items.length === 0;
+
+  if (items.length === 0) {
+    closeReviewModal();
+    return;
+  }
+
+  // Group fields by issue so the same explanation appears once per group.
+  const groupDefinitions = {
+    type_mismatch: {
+      title: "Profile information exists, but the field type is incompatible",
+      description: "These fields were left blank to avoid placing data in an unsuitable field."
+    },
+    ambiguous: {
+      title: "Ambiguous field labels",
+      description: "These labels could refer to different identity fields, so the system did not guess."
+    },
+    unmatched: {
+      title: "Possible matches need verification",
+      description: "The system found profile information that may correspond to these fields, but the match was not confident enough."
+    }
+  };
+
+  const groups = new Map();
+  items.forEach((item) => {
+    const kind = groupDefinitions[item.kind] ? item.kind : "unmatched";
+    if (!groups.has(kind)) groups.set(kind, []);
+    groups.get(kind).push(item);
+  });
+
+  groups.forEach((groupItems, kind) => {
+    const definition = groupDefinitions[kind];
+    const section = document.createElement("section");
+    section.className = `review-group review-group-${kind}`;
+
+    const heading = document.createElement("h3");
+    heading.textContent = `${definition.title} (${groupItems.length})`;
+    section.appendChild(heading);
+
+    const list = document.createElement("ul");
+    groupItems.forEach((item) => {
+      const listItem = document.createElement("li");
+      listItem.appendChild(document.createTextNode(item.label || "Unlabelled field"));
+
+      if (item.page) {
+        const page = document.createElement("span");
+        page.className = "review-field-page";
+        page.textContent = ` — Page ${item.page}`;
+        listItem.appendChild(page);
+      }
+
+      list.appendChild(listItem);
+    });
+    section.appendChild(list);
+
+    const explanation = document.createElement("p");
+    explanation.className = "review-empty";
+    explanation.textContent = definition.description;
+    explanation.style.padding = "0 13px 12px";
+    explanation.style.margin = "0";
+    section.appendChild(explanation);
+
+    reviewGroups.appendChild(section);
+  });
+
+  // Show the popup automatically only when there are meaningful review items.
+  openReviewModal();
 }
 
 function displayResult(record) {
@@ -105,24 +208,52 @@ function displayResult(record) {
     return false;
   }
 
+  // Revoke a previous object URL if the viewer is refreshed in the same page.
+  if (resultUrl) {
+    URL.revokeObjectURL(resultUrl);
+  }
+
   resultRecord = record;
-  resultUrl = URL.createObjectURL(record.blob);
+  renderReviewItems(Array.isArray(record.reviewItems) ? record.reviewItems : []);
+  const isPdf = isPdfRecord(record);
+  // Some producers store a PDF Blob without its MIME type. Normalize it for the browser.
+  const displayBlob = isPdf && record.blob.type !== "application/pdf"
+    ? new Blob([record.blob], { type: "application/pdf" })
+    : record.blob;
+  resultUrl = URL.createObjectURL(displayBlob);
 
-  const previewImage = document.getElementById(
-    "resultPreviewImage"
-  );
+  const viewer = document.getElementById("resultViewer");
+  if (!viewer) {
+    console.error("Completed form viewer container was not found.");
+    return false;
+  }
 
-  previewImage.src = resultUrl;
-  previewImage.alt = `Completed ${record.originalName || "form"}`;
+  // Always clear the previous viewer so an old image/iframe cannot remain visible.
+  viewer.replaceChildren();
 
-  const resultFileName = document.getElementById(
-    "resultFileName"
-  );
+  if (isPdf) {
+    const iframe = document.createElement("iframe");
+    iframe.className = "generated-pdf";
+    iframe.title = "Completed form PDF preview";
+    iframe.src = resultUrl;
+    iframe.setAttribute("loading", "eager");
+    viewer.appendChild(iframe);
+  } else if (record.blob.type.startsWith("image/")) {
+    const previewImage = document.createElement("img");
+    previewImage.className = "generated-form";
+    previewImage.alt = `Completed ${record.originalName || "form"}`;
+    previewImage.src = resultUrl;
+    viewer.appendChild(previewImage);
+  } else {
+    const message = document.createElement("p");
+    message.className = "preview-message";
+    message.textContent = "Preview is not available for this file type. You can still download the completed document.";
+    viewer.appendChild(message);
+  }
 
+  const resultFileName = document.getElementById("resultFileName");
   if (resultFileName) {
-    resultFileName.textContent = buildDownloadName(
-      record.originalName
-    );
+    resultFileName.textContent = buildDownloadName(record.originalName);
   }
 
   return true;
@@ -166,9 +297,27 @@ previewButton.addEventListener("click", () => {
 });
 
 reviewButton.addEventListener("click", () => {
-  showToast(
-    "Please review the completed form carefully before submitting it."
-  );
+  if (resultRecord && Array.isArray(resultRecord.reviewItems) && resultRecord.reviewItems.length > 0) {
+    openReviewModal();
+  } else {
+    showToast("Please review the completed form carefully before submitting it.");
+  }
+});
+
+openReviewModalButton?.addEventListener("click", openReviewModal);
+closeReviewModalButton?.addEventListener("click", closeReviewModal);
+doneReviewButton?.addEventListener("click", closeReviewModal);
+
+reviewModal?.addEventListener("click", (event) => {
+  if (event.target instanceof HTMLElement && event.target.hasAttribute("data-close-review-modal")) {
+    closeReviewModal();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && reviewModal && !reviewModal.hidden) {
+    closeReviewModal();
+  }
 });
 
 downloadButton.addEventListener("click", () => {

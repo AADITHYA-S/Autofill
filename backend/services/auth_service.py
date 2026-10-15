@@ -13,7 +13,7 @@ from backend.security.hmac_utils import normalize_phone_number, tokenise
 from backend.settings import get_settings
 
 
-def create_access_token(user_id: str | ObjectId, expires_minutes: int = 60 * 24) -> str:
+def create_access_token(user_id: str | ObjectId, expires_minutes: int = 30) -> str:
     settings = get_settings()
     secret = settings.jwt_secret_key or "development-secret-change-me"
     algorithm = settings.jwt_algorithm or "HS256"

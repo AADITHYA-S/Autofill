@@ -17,6 +17,10 @@ class MatchField(BaseModel):
     canonical_field:str| None=None
     matched_alias:str | None=None
     similarity_score:float
+    type_compatible: bool | None = None
+    type_warning: str | None = None
+    # A review-only candidate; never used to autofill a rejected match.
+    suggested_canonical_field: str | None = None
 
 class AutofillField(BaseModel):
     form_field: FormField
