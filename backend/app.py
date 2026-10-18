@@ -42,6 +42,11 @@ async def serve_landing_page():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
+@app.get("/health")
+async def health_check() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 app.mount(
     "/",
     StaticFiles(
@@ -50,7 +55,3 @@ app.mount(
     ),
     name="frontend",
 )
-
-@app.get("/health")
-async def health_check() -> dict[str, str]:
-    return {"status": "ok"}
