@@ -58,12 +58,18 @@
 
             <div class="step" id="stepReview">
                 <span>2</span>
-                <strong>Review &amp; consent</strong>
+                <strong>Preview &amp; review</strong>
+            </div>
+            <div class="line"></div>
+
+            <div class="step" id="stepConsent">
+                <span>3</span>
+                <strong>Consent</strong>
             </div>
             <div class="line"></div>
 
             <div class="step" id="stepSaved">
-                <span>3</span>
+                <span>4</span>
                 <strong>Saved</strong>
             </div>
         </div>
@@ -161,6 +167,53 @@
             <small>Nothing is being added to your profile yet.</small>
         </section>
 
+        <!-- PREVIEW & REVIEW STATE (new; existing upload/processing/saved states remain) -->
+        <section class="state review-state" id="reviewState" hidden>
+            <div class="review-heading">
+                <p class="eyebrow">PREVIEW &amp; REVIEW</p>
+                <h2>Check your document</h2>
+                <p>Review the document and correct extracted values before giving consent.</p>
+            </div>
+
+            <div class="quality-summary" id="qualitySummary" aria-live="polite">
+                <div class="quality-indicator">
+                    <span class="quality-dot" id="qualityDot"></span>
+                    <strong id="qualityLabel">Quality not assessed</strong>
+                </div>
+                <div class="quality-reasons" id="qualityReasons" hidden></div>
+            </div>
+
+            <div class="document-preview">
+                <h3>Uploaded document</h3>
+                <div class="preview-frame" id="previewFrame">
+                    <div class="document-image-wrap" id="documentImageWrap" hidden>
+                        <img id="documentPreviewImage" alt="Preview of the uploaded document" hidden>
+                        <svg id="boundingBoxOverlay" class="bounding-box-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"></svg>
+                    </div>
+                    <iframe id="documentPreviewPdf" title="Uploaded PDF preview" hidden></iframe>
+                    <p id="previewFallback" hidden>Preview is unavailable for this file. You can still review and edit the extracted details below.</p>
+                </div>
+                <p class="preview-note">Red boxes highlight fields that may need your attention. Please verify these details against your original document.</p>
+            </div>
+
+            <div class="review-details">
+                <div class="review-details-heading">
+                    <h3>Extracted details</h3>
+                    <p>Check the values below. You can edit existing values or add a missing field.</p>
+                </div>
+                <div id="reviewFields" class="review-fields"></div>
+                <button type="button" class="add-field-button" id="addReviewFieldButton" hidden>+ Add missing field</button>
+                <p class="review-edit-note" id="reviewEditNote" hidden>Your changes will be included in the consent summary.</p>
+            </div>
+
+            <div class="review-actions">
+                <button type="button" class="review-secondary-button" id="reuploadDocumentButton">Re-upload document</button>
+                <button type="button" class="review-secondary-button" id="editDetailsButton">Edit details manually</button>
+                <button type="button" class="primary-button" id="proceedConsentButton">Proceed to consent</button>
+            </div>
+            <p class="review-privacy-note">Nothing is saved to your profile until you explicitly consent.</p>
+        </section>
+
         <!-- SAVED STATE -->
         <section
             class="state saved-state"
@@ -228,7 +281,7 @@
             <p>
                 Your information will only be added to your
                 identity profile if you explicitly choose
-                “I Consent &amp; Save”.
+                “Consent &amp; update profile”.
             </p>
         </div>
 
@@ -246,10 +299,18 @@
         <div class="consent-actions">
             <button
                 class="decline-button"
+                id="goBackEditButton"
+                type="button"
+            >
+                Review and Edit
+            </button>
+
+            <button
+                class="decline-button"
                 id="declineConsentButton"
                 type="button"
             >
-                Decline &amp; discard
+                Decline and Discard
             </button>
 
             <button
@@ -258,7 +319,7 @@
                 type="button"
                 disabled
             >
-                I Consent &amp; Save
+               I Consent &amp; save 
             </button>
         </div>
     </section>

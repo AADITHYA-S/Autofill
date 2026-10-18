@@ -197,6 +197,7 @@ def convert_extraction_for_persistence(
     result = {
         "document_type": document_type,
         "confidence_score": confidence_score,
+        "confidence_reason": extraction.get("confidence_reason", []),
     }
 
     for field_name, field_data in extracted_fields.items():

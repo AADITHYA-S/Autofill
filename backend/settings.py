@@ -16,7 +16,7 @@ RESULTS_DIR = ROOT_DIR / "uploads" / "documents"
 @dataclass(frozen=True)
 class Settings:
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.6-flash"
+    gemini_model: str = "gemini-3.8-flash"
     gemini_api_version: str = "v1alpha"
     max_upload_size_mb: int = 25
     upload_dir: Path = UPLOAD_DIR
