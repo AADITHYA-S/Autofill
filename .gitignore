@@ -62,3 +62,5 @@ red_box
 migrate_phone_hashes.py
 inspect_profile.py
 DEPLOYMENT.md
+
+backend/models/all-MiniLM-L6-v2/

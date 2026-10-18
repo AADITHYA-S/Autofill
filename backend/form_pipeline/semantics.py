@@ -6,10 +6,31 @@ from backend.form_pipeline.canonical_fields import CANONOICAL_FIELDS
 from backend.models.form_models import FormField, MatchField
 from sentence_transformers import SentenceTransformer
 
+import os
+from pathlib import Path
 
 class SemanticMatcher:
     def __init__(self):
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        model_path = Path(
+            os.getenv(
+                "SENTENCE_TRANSFORMER_MODEL_PATH",
+                str(
+                    Path(__file__).resolve().parents[1]
+                    / "models"
+                    / "all-MiniLM-L6-v2"
+                ),
+            )
+        )
+
+        if model_path.exists():
+            self.model = SentenceTransformer(
+                str(model_path),
+                local_files_only=True,
+            )
+        else:
+            self.model = SentenceTransformer("all-MiniLM-L6-v2")
+
+        
         self.threshold = 0.70
         self.ambiguity_margin = 0.05
         # Lower than the autofill threshold: used only to decide whether a rejected
