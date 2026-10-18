@@ -35,7 +35,7 @@ def get_settings() -> Settings:
 
     settings = Settings(
         gemini_api_key=os.getenv("GEMINI_API_KEY", "").strip(),
-        gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip(),
+        gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip(),
         gemini_api_version=os.getenv("GEMINI_API_VERSION", "v1alpha").strip(),
         max_upload_size_mb=int(os.getenv("MAX_UPLOAD_SIZE_MB", "25")),
         mongodb_uri=os.getenv("MONGODB_URI", "").strip(),

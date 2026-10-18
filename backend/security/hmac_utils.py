@@ -9,15 +9,17 @@ from backend.settings import get_settings
 
 def normalize_phone_number(value: str) -> str:
     digits = re.sub(r"\D+", "", value or "")
+
     if len(digits) == 10:
-        return "+91" + digits
-    if len(digits) > 10 and digits.startswith("91") and len(digits) == 12:
-        return "+" + digits
-    if digits.startswith("0") and len(digits) == 11:
-        return "+91" + digits[1:]
-    if digits and not digits.startswith("+"):
-        return "+" + digits
-    return digits
+        return digits
+
+    if len(digits) == 11 and digits.startswith("0"):
+        return digits[1:]
+
+    if len(digits) == 12 and digits.startswith("91"):
+        return digits[2:]
+
+    return ""
 
 
 def tokenise(value: str) -> str:

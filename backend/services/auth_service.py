@@ -11,7 +11,7 @@ from backend.database.mongodb import get_database
 from backend.security.encryption import encrypt_text
 from backend.security.hmac_utils import normalize_phone_number, tokenise
 from backend.settings import get_settings
-
+from backend.repositories.patient_profiles import initialize_patient_profile
 
 def create_access_token(user_id: str | ObjectId, expires_minutes: int = 30) -> str:
     settings = get_settings()
@@ -27,6 +27,8 @@ def register_user(phone: str, password: str, consent_given: bool = False) -> Obj
         raise ValueError("Phone and password are required")
 
     normalized_phone = normalize_phone_number(phone)
+    if not normalized_phone:
+        raise ValueError("Enter a valid 10-digit phone number")
     phone_hash = tokenise(normalized_phone)
     database = get_database()
 
@@ -50,7 +52,15 @@ def register_user(phone: str, password: str, consent_given: bool = False) -> Obj
     }
     user_record["_id"] = ObjectId()
     result = database.users.insert_one(user_record)
-    return result.inserted_id if getattr(result, "inserted_id", None) is not None else user_record["_id"]
+    user_id = result.inserted_id or user_record["_id"]
+
+    try:
+        initialize_patient_profile(user_id, normalized_phone)
+    except Exception:
+        database.users.delete_one({"_id": user_id})
+        raise
+
+    return user_id
 
 
 def login_user(phone: str, password: str) -> str:
@@ -58,6 +68,11 @@ def login_user(phone: str, password: str) -> str:
         raise HTTPException(status_code=401, detail="Phone and password are required")
 
     normalized_phone = normalize_phone_number(phone)
+    if not normalized_phone:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid phone or password",
+        )
     phone_hash = tokenise(normalized_phone)
     database = get_database()
     user = database.users.find_one({"phone_hash": phone_hash})

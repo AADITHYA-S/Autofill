@@ -5,9 +5,12 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from backend.database.mongodb import get_database
-from backend.security.encryption import ActiveDek, encrypt_text
+# from backend.security.encryption import ActiveDek, encrypt_text
 from backend.security.hmac_utils import normalize_phone_number, tokenise
 from backend.repositories.profile_normalizer import parse_address,parse_name
+
+from backend.security.encryption import ActiveDek, encrypt_text, get_active_dek
+from backend.security.decryption import decrypt_field
 
 
 def _normalize_gender(value: object) -> str | None:
@@ -46,9 +49,13 @@ def _encode_if_present(update: dict, field_name: str, value: object) -> None:
 def build_profile_update(fields: dict, dek: ActiveDek) -> dict:
     update: dict = {"dek_id": dek.id, "updated_at": datetime.now(timezone.utc)}
 
-    #name
-    raw_name=_value(fields,"full_name","name")
-    name_parts = (parse_name(str(raw_name)) if raw_name else {})
+    # #name
+    # raw_name=_value(fields,"full_name","name")
+    # name_parts = (parse_name(str(raw_name)) if raw_name else {})
+
+    raw_name = _value(fields, "full_name", "name")
+    raw_name = str(raw_name).strip() if raw_name is not None else ""
+    name_parts = parse_name(raw_name) if raw_name else {}
 
     raw_address=_value(fields,"address")
 
@@ -86,11 +93,18 @@ def build_profile_update(fields: dict, dek: ActiveDek) -> dict:
             if normalized_value is not None:
                 update[target] = normalized_value
 
+    # phone_value = _value(fields, "mobile_number", "phone_number")
+    # if phone_value is not None:
+    #     normalized_phone = normalize_phone_number(str(phone_value))
+    #     update["phone_enc"] = encrypt_text(normalized_phone)
+    #     update["phone_hash"] = tokenise(normalized_phone)
     phone_value = _value(fields, "mobile_number", "phone_number")
+
     if phone_value is not None:
         normalized_phone = normalize_phone_number(str(phone_value))
-        update["phone_enc"] = encrypt_text(normalized_phone)
-        update["phone_hash"] = tokenise(normalized_phone)
+        if normalized_phone:
+            update["phone_enc"] = encrypt_text(normalized_phone)
+            update["phone_hash"] = tokenise(normalized_phone)
 
     identifier_enc_map = {
         "aadhaar_enc": "aadhaar_number",
@@ -128,12 +142,54 @@ def get_profile_id(user_id: ObjectId) -> ObjectId:
     return existing["_id"] if existing else ObjectId()
 
 
+def initialize_patient_profile(user_id: ObjectId, phone: str) -> ObjectId:
+    collection = get_database().patient_profiles
+
+    existing = collection.find_one({"user_id": user_id}, {"_id": 1})
+    if existing:
+        return existing["_id"]
+
+    dek = get_active_dek()
+    now = datetime.now(timezone.utc)
+    normalized_phone = normalize_phone_number(phone)
+
+    if not normalized_phone:
+        raise ValueError("A valid phone number is required")
+
+    profile = {
+        "user_id": user_id,
+        "name_enc": encrypt_text(""),
+        "phone_enc": encrypt_text(normalized_phone),
+        "phone_hash": tokenise(normalized_phone),
+        "dek_id": dek.id,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    result = collection.insert_one(profile)
+    return result.inserted_id
+
 def upsert_patient_profile(user_id: ObjectId, profile_id: ObjectId, fields: dict, dek: ActiveDek) -> ObjectId:
     collection = get_database().patient_profiles
     update = build_profile_update(fields, dek)
     update["user_id"] = user_id
-    if "name_enc" not in update and not collection.find_one({"user_id": user_id}, {"_id": 1}):
-        raise RuntimeError("A new patient profile requires an extracted name")
+    # if "name_enc" not in update and not collection.find_one({"user_id": user_id}, {"_id": 1}):
+    #     raise RuntimeError("A new patient profile requires an extracted name")
+
+    existing = collection.find_one(
+        {"user_id": user_id},
+        {"_id": 1, "name_enc": 1},
+    )
+
+    if "name_enc" not in update:
+        if existing is None:
+            raise RuntimeError("A new patient profile requires an extracted name")
+
+        stored_name = decrypt_field(existing.get("name_enc"))
+        if not stored_name.strip():
+            raise RuntimeError("An extracted name is required to complete the patient profile")
+
+        
     collection.update_one(
         {"user_id": user_id},
         {"$set": update, "$setOnInsert": {"_id": profile_id, "created_at": datetime.now(timezone.utc)}},

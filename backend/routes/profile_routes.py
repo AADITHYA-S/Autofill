@@ -44,6 +44,7 @@ class ProfileResponse(BaseModel):
     pincode: str = ""
 
     phone: str = ""
+    email: str = ""
     guardian_name: str = ""
     place_of_birth: str = ""
 
@@ -81,6 +82,7 @@ class ProfileUpdate(BaseModel):
     pincode: Optional[str] = None
 
     phone: Optional[str] = None
+    email: Optional[str] = None
     guardian_name: Optional[str] = None
     place_of_birth: Optional[str] = None
 

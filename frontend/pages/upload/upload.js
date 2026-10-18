@@ -1,11 +1,80 @@
 // frontend/pages/upload/upload.js
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("[MedForm] upload.js loaded");
+    if (window.MEDFORM_DEBUG === true) console.log("[MedForm] upload.js loaded");
 
     // Authentication
     if (typeof requireAuthentication === "function") {
         requireAuthentication();
+    }
+
+        // ---------------------------------------------------------
+    // AVATAR AND ACCOUNT MENU
+    // ---------------------------------------------------------
+
+    const avatarButton = document.getElementById("avatarButton");
+    const userMenu = document.getElementById("userMenu");
+    const logoutButton = document.getElementById("logoutButton");
+
+    if (avatarButton && userMenu) {
+        avatarButton.setAttribute("aria-label", "Account menu");
+        avatarButton.setAttribute("aria-haspopup", "true");
+        avatarButton.setAttribute("aria-expanded", "false");
+
+        avatarButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+
+            userMenu.hidden = !userMenu.hidden;
+
+            avatarButton.setAttribute(
+                "aria-expanded",
+                String(!userMenu.hidden)
+            );
+        });
+
+        document.addEventListener("click", (event) => {
+            if (
+                !userMenu.contains(event.target) &&
+                !avatarButton.contains(event.target)
+            ) {
+                userMenu.hidden = true;
+                avatarButton.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                userMenu.hidden = true;
+                avatarButton.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        // Fetch the profile and set the avatar initial.
+        async function loadAvatarInitial() {
+            try {
+                const response = await apiRequest("/api/profile/", {
+                    method: "GET"
+                });
+
+                const profile =
+                    response.profile || response.data || response;
+
+                const name = String(profile.name || "").trim();
+
+                avatarButton.textContent =
+                    name.charAt(0).toUpperCase() || "U";
+            } catch (error) {
+                avatarButton.textContent = "U";
+            }
+        }
+
+        loadAvatarInitial();
+    }
+
+    if (logoutButton) {
+        logoutButton.addEventListener("click", () => {
+            logout();
+        });
     }
 
     const fileInput = document.getElementById("documentFile");
@@ -185,7 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedFile.hidden = false;
         extractButton.disabled = false;
 
-        console.log(
+        if (window.MEDFORM_DEBUG === true) console.log(
             "[MedForm] file selected:",
             file.name
         );
@@ -241,7 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
     extractButton.addEventListener(
         "click",
         async () => {
-            console.log(
+            if (window.MEDFORM_DEBUG === true) console.log(
                 "[MedForm] Extract button clicked"
             );
 
@@ -272,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     selectedFileObject
                 );
 
-                console.log(
+                if (window.MEDFORM_DEBUG === true) console.log(
                     "[MedForm] calling /api/documents/extract"
                 );
 
@@ -291,7 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 );
 
-                console.log(
+                if (window.MEDFORM_DEBUG === true) console.log(
                     "[MedForm] extraction response received:",
                     response
                 );
@@ -623,7 +692,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ---------------------------------------------------------
 
     function openConsentModal() {
-        console.log(
+        if (window.MEDFORM_DEBUG === true) console.log(
             "[MedForm] OPENING CONSENT MODAL"
         );
 
@@ -758,7 +827,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "modal-open"
         );
 
-        console.log(
+        if (window.MEDFORM_DEBUG === true) console.log(
             "[MedForm] consentModal.hidden =",
             consentModal.hidden
         );
@@ -787,7 +856,7 @@ document.addEventListener("DOMContentLoaded", () => {
     declineConsentButton.addEventListener(
         "click",
         () => {
-            console.log(
+            if (window.MEDFORM_DEBUG === true) console.log(
                 "[MedForm] user declined consent"
             );
 
@@ -842,7 +911,7 @@ document.addEventListener("DOMContentLoaded", () => {
             consentError.textContent = "";
 
             try {
-                console.log(
+                if (window.MEDFORM_DEBUG === true) console.log(
                     "[MedForm] sending POST /api/documents/consent"
                 );
 
@@ -862,7 +931,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 );
 
-                console.log(
+                if (window.MEDFORM_DEBUG === true) console.log(
                     "[MedForm] consent save response:",
                     result
                 );
@@ -969,7 +1038,7 @@ document.addEventListener("DOMContentLoaded", () => {
     reviewState.hidden = true;
     consentModal.hidden = true;
 
-    console.log(
+    if (window.MEDFORM_DEBUG === true) console.log(
         "[MedForm] upload page initialized"
     );
 });

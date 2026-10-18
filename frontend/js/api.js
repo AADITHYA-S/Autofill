@@ -1,8 +1,6 @@
-const API_BASE_URL = "";
+const API_BASE_URL = String(window.MEDFORM_API_BASE_URL || "").replace(/\/$/, "");
 
 async function apiRequest(endpoint, options = {}) {
-
-    console.log("[API] Starting request:", endpoint);
 
     const token = localStorage.getItem("access_token");
 
@@ -18,12 +16,6 @@ async function apiRequest(endpoint, options = {}) {
         headers["Authorization"] = `Bearer ${token}`;
     }
 
-    console.log("[API] Sending fetch:", {
-        url: `${API_BASE_URL}${endpoint}`,
-        method: options.method || "GET",
-        isFormData: options.body instanceof FormData
-    });
-
     const response = await fetch(
         `${API_BASE_URL}${endpoint}`,
         {
@@ -32,12 +24,6 @@ async function apiRequest(endpoint, options = {}) {
         }
     );
 
-    console.log("[API] Fetch completed:", {
-        status: response.status,
-        ok: response.ok,
-        contentType: response.headers.get("content-type")
-    });
-
     const contentType =
         response.headers.get("content-type") || "";
 
@@ -45,25 +31,12 @@ async function apiRequest(endpoint, options = {}) {
 
     if (contentType.includes("application/json")) {
 
-        console.log("[API] Waiting for JSON body...");
-
         data = await response.json();
-
-        console.log(
-            "[API] JSON body received:",
-            data
-        );
 
     } else {
 
-        console.log("[API] Waiting for text body...");
-
         data = await response.text();
 
-        console.log(
-            "[API] Text body received:",
-            data
-        );
     }
 
     if (!response.ok) {
@@ -89,11 +62,6 @@ async function apiRequest(endpoint, options = {}) {
 
         throw new Error(message);
     }
-
-    console.log(
-        "[API] Request completed successfully:",
-        endpoint
-    );
 
     return data;
 }

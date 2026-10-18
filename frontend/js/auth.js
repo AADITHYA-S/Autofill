@@ -54,8 +54,10 @@ function logout() {
  */
 function requireAuthentication() {
     if (!isAuthenticated()) {
-        window.location.href = "../login/login.html";
+        window.location.replace("../login/login.html");
+        return false;
     }
+    return true;
 }
 
 /**
@@ -64,6 +66,8 @@ function requireAuthentication() {
  */
 function redirectIfAuthenticated() {
     if (isAuthenticated()) {
-        window.location.href = "../dashboard/dashboard.html";
+        window.location.replace("../dashboard/dashboard.html");
+        return true;
     }
+    return false;
 }

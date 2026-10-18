@@ -3,6 +3,48 @@
 document.addEventListener("DOMContentLoaded", () => {
     requireAuthentication();
 
+    // Avatar and user menu
+    const avatarButton = document.getElementById("avatarButton");
+    const userMenu = document.getElementById("userMenu");
+    const logoutButton = document.getElementById("logoutButton");
+
+    if (avatarButton && userMenu) {
+        avatarButton.setAttribute("aria-label", "Account menu");
+        avatarButton.setAttribute("aria-haspopup", "true");
+        avatarButton.setAttribute("aria-expanded", "false");
+
+        avatarButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+
+            const isOpening = userMenu.hidden;
+            userMenu.hidden = !isOpening;
+            avatarButton.setAttribute("aria-expanded", String(isOpening));
+        });
+
+        document.addEventListener("click", (event) => {
+            if (
+                !userMenu.contains(event.target) &&
+                !avatarButton.contains(event.target)
+            ) {
+                userMenu.hidden = true;
+                avatarButton.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                userMenu.hidden = true;
+                avatarButton.setAttribute("aria-expanded", "false");
+            }
+        });
+    }
+
+    if (logoutButton) {
+        logoutButton.addEventListener("click", () => {
+            logout();
+        });
+    }
+
     const loadingState = document.getElementById("loadingState");
     const profileView = document.getElementById("profileView");
     const profileEditor = document.getElementById("profileEditor");
@@ -85,6 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
             eyebrow: "CONTACT",
             fields: [
                 { key: "phone", label: "Phone number", type: "text" },
+                { key: "email", label: "Email ID", type: "email" },
             ],
         },
         {
@@ -154,6 +197,17 @@ document.addEventListener("DOMContentLoaded", () => {
     function getCurrentValue(key) {
         return currentProfile?.[key] ?? "";
     }
+
+    // added avatar character
+    function updateAvatar(name) {
+    const initial = String(name || "").trim().charAt(0).toUpperCase() || "U";
+
+    if (avatarButton) {
+        avatarButton.textContent = initial;
+    }
+}
+
+
 
     function showViewMode() {
         profileEditor.hidden = true;
@@ -460,6 +514,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             currentProfile = { ...profile };
+
+            updateAvatar(currentProfile.name);
 
             loadingState.hidden = true;
             showViewMode();

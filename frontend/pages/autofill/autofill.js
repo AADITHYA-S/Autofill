@@ -32,7 +32,7 @@ let selectedForm = null;
 let isProcessing = false;
 let processingTimers = [];
 
-const API_BASE_URL = "http://localhost:8000";
+// const API_BASE_URL = "http://localhost:8000";
 const RESULT_DB_NAME = "medform_autofill";
 const RESULT_STORE_NAME = "results";
 const RESULT_KEY = "latest";
@@ -372,7 +372,7 @@ async function startProcessing() {
     const formData = new FormData();
     formData.append("form", selectedForm, selectedForm.name);
 
-    console.log("[MedForm] calling /api/forms/fill");
+    if (window.MEDFORM_DEBUG === true) console.log("[MedForm] calling /api/forms/fill");
 
     const response = await fetch(`${API_BASE_URL}/api/forms/fill`, {
       method: "POST",
@@ -380,7 +380,7 @@ async function startProcessing() {
       body: formData
     });
 
-    console.log("[MedForm] /api/forms/fill response:", response.status);
+    if (window.MEDFORM_DEBUG === true) console.log("[MedForm] /api/forms/fill response:", response.status);
 
     if (!response.ok) {
       const message = await parseErrorResponse(response);
@@ -454,6 +454,88 @@ startButton.addEventListener("click", startProcessing);
 
 if (typeof requireAuthentication === "function") {
   requireAuthentication();
+  // ---------------------------------------------------------
+// AVATAR AND ACCOUNT MENU
+// ---------------------------------------------------------
+
+const avatarButton = document.getElementById("avatarButton");
+const userMenu = document.getElementById("userMenu");
+const logoutButton = document.getElementById("logoutButton");
+
+if (avatarButton && userMenu) {
+    avatarButton.setAttribute("aria-label", "Account menu");
+    avatarButton.setAttribute("aria-haspopup", "true");
+    avatarButton.setAttribute("aria-expanded", "false");
+
+    avatarButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+
+        userMenu.hidden = !userMenu.hidden;
+
+        avatarButton.setAttribute(
+            "aria-expanded",
+            String(!userMenu.hidden)
+        );
+    });
+
+    document.addEventListener("click", (event) => {
+        if (
+            !userMenu.contains(event.target) &&
+            !avatarButton.contains(event.target)
+        ) {
+            userMenu.hidden = true;
+            avatarButton.setAttribute("aria-expanded", "false");
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            userMenu.hidden = true;
+            avatarButton.setAttribute("aria-expanded", "false");
+        }
+    });
+
+    async function loadAvatarInitial() {
+    avatarButton.textContent = "U";
+
+    try {
+        const response = await apiRequest("/api/profile/", {
+            method: "GET"
+        });
+
+        if (window.MEDFORM_DEBUG === true) console.log("[Avatar] Profile API response:", response);
+
+        const profile =
+            response?.profile ||
+            response?.data?.profile ||
+            response?.data ||
+            response;
+
+        const name = String(
+            profile?.name ||
+            profile?.full_name ||
+            profile?.fullName ||
+            ""
+        ).trim();
+
+        if (name) {
+            avatarButton.textContent = name.charAt(0).toUpperCase();
+        } else {
+            console.warn("[Avatar] No name found in profile response.");
+        }
+    } catch (error) {
+        console.error("[Avatar] Failed to load profile:", error);
+    }
+}
+
+    loadAvatarInitial();
+}
+
+if (logoutButton) {
+    logoutButton.addEventListener("click", () => {
+        logout();
+    });
+}
 }
 
 uploadView.hidden = false;

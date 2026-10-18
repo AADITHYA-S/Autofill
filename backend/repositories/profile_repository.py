@@ -33,6 +33,7 @@ class ProfileRepository:
         "state": "state_enc",
         "pincode": "pincode_enc",
         "phone": "phone_enc",
+        "email":"email_enc",
         "guardian_name": "guardian_name_enc",
         "place_of_birth": "place_of_birth_enc",
         "insurance_details": "insurance_details_enc",
@@ -137,6 +138,7 @@ class ProfileRepository:
             "pincode": dec("pincode_enc"),
 
             "phone": dec("phone_enc"),
+            "email": dec("email_enc"),
             "guardian_name": dec("guardian_name_enc"),
             "place_of_birth": dec("place_of_birth_enc"),
 

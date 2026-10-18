@@ -100,7 +100,15 @@ button {
 }
 
 .user-area {
-    margin-left: auto;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-area > span {
+    color: #697481;
+    font-size: 12px;
 }
 
 .avatar {
@@ -112,6 +120,39 @@ button {
     color: var(--navy);
     font-size: 12px;
     font-weight: 700;
+}
+
+.user-menu {
+    position: absolute;
+    z-index: 10;
+    top: 47px;
+    right: 0;
+    width: 150px;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 12px 28px rgba(31, 42, 58, .1);
+}
+
+.user-menu a,
+.user-menu button {
+    width: 100%;
+    padding: 9px 10px;
+    display: block;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #586573;
+    text-align: left;
+    text-decoration: none;
+    font-size: 10px;
+}
+
+.user-menu a:hover,
+.user-menu button:hover {
+    background: #f4f6f8;
+    color: var(--navy);
 }
 
 .page {

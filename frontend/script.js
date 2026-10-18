@@ -30,6 +30,7 @@ function showToast(message) {
 const protectedRoutes = {
     dashboard: "pages/dashboard/dashboard.html",
     upload: "pages/upload/upload.html",
+    documents: "pages/upload/upload.html",
     fill: "pages/autofill/autofill.html",
     profile: "pages/profile/profile.html"
 };

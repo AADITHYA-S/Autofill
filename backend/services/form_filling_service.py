@@ -315,6 +315,10 @@ class FormFillingService:
                 "phone",""
             ),
 
+            email=profile.get(
+                "email", ""
+            ),
+            
             dob=profile.get(
                 "dob", ""
             ),
